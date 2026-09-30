@@ -12,6 +12,44 @@ This is an early command-line converter, validated on a real **3456×1728**
 Mi Sphere recording. Horizon stabilization is not implemented yet. See
 [limitations](#current-limitations) before processing your archive.
 
+## One command
+
+```sh
+./misphere video.mp4
+```
+
+That's it: setup is automatic, original camera files are identified from their
+embedded calibration, and the output is `video_s.mp4`. No environment activation
+or output filename is needed. Already tagged equirectangular 360 videos are
+recognized and skipped. Existing outputs are preserved.
+
+Process hundreds of recordings with the same command:
+
+```sh
+./misphere /path/to/videos
+```
+
+This scans subdirectories and writes `/path/to/videos_s/`, retaining the folder
+layout and adding `_s.mp4` to each original stem. Problems are reported in
+`failures.json`; one failed file does not stop the rest. Multiple file or folder
+arguments are supported.
+
+Identify a recording from a remote terminal without converting it:
+
+```sh
+./misphere --check video.mp4
+```
+
+The result is `dual-fisheye` (original camera calibration), `equirectangular`
+(360 projection metadata), or `unknown`. These are metadata-based checks, not
+a guarantee about arbitrary transcoded footage: if calibration/tags were
+stripped or conflict, the script leaves the file unchanged instead of guessing.
+No GUI is needed. The first run installs missing dependencies and may request
+your sudo/doas password for system packages.
+
+Optional preview: `./misphere --width 1440 --seconds 3 video.mp4`. Advanced
+Makefile and Python commands remain available below.
+
 ## What it does
 
 - **Uses the recording's own lens calibration** rather than guessing a generic

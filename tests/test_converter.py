@@ -179,6 +179,45 @@ class VideoTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn('outside the input directory', result.stderr)
 
+    def test_automatic_file_identifies_converts_and_skips_tagged_output(self):
+        output = self.source.with_name('synthetic_s.mp4')
+        try:
+            checked = self.run_cli('auto', '--check', self.source)
+            self.assertEqual(checked.returncode, 0, checked.stderr)
+            self.assertIn('dual-fisheye', checked.stdout)
+            self.assertFalse(output.exists())
+            converted = self.run_cli('auto', self.source, '--width', 320)
+            self.assertEqual(converted.returncode, 0, converted.stderr)
+            self.assertTrue(output.exists())
+            tagged = self.run_cli('auto', output)
+            self.assertEqual(tagged.returncode, 0, tagged.stderr)
+            self.assertIn('equirectangular', tagged.stdout)
+            self.assertFalse(output.with_name('synthetic_s_s.mp4').exists())
+        finally:
+            if output.exists():
+                output.unlink()
+
+    def test_automatic_folder_preserves_names_and_reports_unknown_files(self):
+        folder = self.root / 'automatic'
+        nested = folder / 'subfolder'
+        nested.mkdir(parents=True)
+        shutil.copyfile(self.source, folder / 'VID_001.mp4')
+        shutil.copyfile(self.source, nested / 'VID_002.mp4')
+        unknown = folder / 'untagged.mp4'
+        # Remuxing intentionally removes the synthetic camera-specific LUT.
+        subprocess.run(['ffmpeg', '-v', 'error', '-i', str(self.source), '-c', 'copy',
+                        '-map_metadata', '-1', str(unknown)], check=True)
+        result = self.run_cli('auto', folder, '--width', 320)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        outputs = folder.with_name('automatic_s')
+        self.assertTrue((outputs / 'VID_001_s.mp4').exists())
+        self.assertTrue((outputs / 'subfolder' / 'VID_002_s.mp4').exists())
+        self.assertFalse((outputs / 'untagged_s.mp4').exists())
+        self.assertIn('unknown', result.stdout)
+        errors = json.loads((outputs / 'failures.json').read_text())
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(Path(errors[0]['input']).name, 'untagged.mp4')
+
 
 if __name__ == '__main__':
     unittest.main()

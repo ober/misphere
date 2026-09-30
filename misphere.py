@@ -244,6 +244,70 @@ def convert(source, output, width, seam_degrees, seconds=None):
     print(f'{output}: {frames} frames, embedded calibration, {audio}, spherical tag')
 
 
+def identify(path):
+    """Use camera calibration or spherical tags as evidence; never guess from names."""
+    info = probe(path)
+    video = next((s for s in info['streams'] if s['codec_type'] == 'video'), None)
+    if video is None:
+        return 'unknown', 'no video stream'
+    meta = metadata(path)
+    spherical = any(s.get('side_data_type') == 'Spherical Mapping'
+                    and s.get('projection') == 'equirectangular'
+                    for s in video.get('side_data_list', []))
+    if meta.get('lutz') and spherical:
+        return 'unknown', 'conflicting camera calibration and spherical metadata'
+    if spherical:
+        return 'equirectangular', 'tagged 360 panorama'
+    if meta.get('lutz'):
+        calibration(meta)
+        return 'dual-fisheye', 'original camera lens calibration found'
+    return 'unknown', 'no camera calibration or spherical tag; format cannot be established'
+
+
+def automatic(paths, check, width, seam_degrees, seconds):
+    failed = False
+    for given in paths:
+        root = given.resolve()
+        directory = root.is_dir()
+        if not root.exists():
+            print(f'{given}: missing', file=sys.stderr)
+            failed = True
+            continue
+        sources = sorted(p for p in root.rglob('*') if p.suffix.lower() == '.mp4' and p.is_file()) if directory else [root]
+        if not sources:
+            print(f'{root}: no MP4 files found', file=sys.stderr)
+            failed = True
+            continue
+        errors = []
+        output_root = root.with_name(root.name + '_s') if directory else None
+        for source in sources:
+            try:
+                kind, reason = identify(source)
+                print(f'{source}: {kind} ({reason})', flush=True)
+                if kind == 'unknown':
+                    raise ValueError(reason)
+                if check or kind == 'equirectangular':
+                    continue
+                relative = source.relative_to(root) if directory else source
+                renamed = relative.with_name(relative.stem + '_s.mp4')
+                output = output_root / renamed if directory else renamed
+                if output.exists():
+                    print(f'{output}: already exists, skipping', flush=True)
+                    continue
+                convert(source, output, width, seam_degrees, seconds)
+            except (ValueError, OSError, subprocess.CalledProcessError, RuntimeError) as error:
+                failed = True
+                errors.append({'input': str(source), 'error': str(error)})
+                print(f'{source}: left unchanged; {error}', file=sys.stderr, flush=True)
+        if errors and directory and not check:
+            output_root.mkdir(parents=True, exist_ok=True)
+            report = output_root / 'failures.json'
+            report.write_text(json.dumps(errors, indent=2))
+            print(f'Problems recorded in {report}', file=sys.stderr)
+    if failed:
+        raise SystemExit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest='command', required=True)
@@ -256,7 +320,10 @@ def main():
     batch = subs.add_parser('batch')
     batch.add_argument('input_dir', type=Path)
     batch.add_argument('output_dir', type=Path)
-    for p in (single, batch):
+    auto = subs.add_parser('auto', help='Identify and convert files or whole folders automatically')
+    auto.add_argument('paths', type=Path, nargs='+')
+    auto.add_argument('--check', action='store_true', help='Identify only; do not convert')
+    for p in (single, batch, auto):
         p.add_argument('--width', type=int, default=3456,
                        help='Output width, divisible by four; height is half (default: 3456)')
         p.add_argument('--seam-degrees', type=float, default=1,
@@ -286,7 +353,9 @@ def main():
             parser.error('--seconds must be positive')
         if args.width < 4 or args.width % 4:
             parser.error('--width must be positive and divisible by four')
-        if args.command == 'convert':
+        if args.command == 'auto':
+            automatic(args.paths, args.check, args.width, args.seam_degrees, args.seconds)
+        elif args.command == 'convert':
             output = args.output or args.input.with_name(args.input.stem + '_s.mp4')
             convert(args.input.resolve(), output.resolve(), args.width, args.seam_degrees, args.seconds)
         else:

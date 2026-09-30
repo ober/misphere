@@ -66,7 +66,8 @@ as `.venv/bin/python misphere.py ...`.
 make convert INPUT=original.mp4
 ```
 
-This writes `original-stitched.mp4` beside the input. Choose another name with
+This writes `original_s.mp4` beside the input. Every default output keeps its
+original filename and adds `_s` before `.mp4`. Choose another name with
 `OUTPUT=stitched.mp4`. The default output is **3456×1728** at the input's frame rate. Open the result
 in a 360°-capable video player. An ordinary player displays a flat panorama;
 that alone does not mean the conversion failed.
@@ -93,7 +94,9 @@ Quote paths containing spaces.
 make batch INPUT=/path/to/originals OUTPUT=/path/to/stitched
 ```
 
-Omit `OUTPUT` to use a sibling directory named `originals-stitched`. Use a
+For example, `VID_001.mp4` becomes `VID_001_s.mp4` and `VID_002.mp4` becomes
+`VID_002_s.mp4`, preserving subdirectories. Omit `OUTPUT` to use a sibling
+directory named `originals_s`. Use a
 separate output directory outside the input directory. The converter
 finds `.mp4` files recursively, preserves relative paths, and skips outputs
 that already exist. A failed file does not stop the remaining batch. If any

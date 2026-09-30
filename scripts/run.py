@@ -16,8 +16,8 @@ def main():
         output = os.environ.get('OUTPUT')
         if not output:
             path = Path(source).resolve()
-            output = str(path.with_name(path.stem + '-stitched.mp4') if action == 'convert'
-                         else path.with_name(path.name + '-stitched'))
+            output = str(path.with_name(path.stem + '_s.mp4') if action == 'convert'
+                         else path.with_name(path.name + '_s'))
         arguments.append(output)
         for variable, option in [('WIDTH', '--width'), ('SECONDS', '--seconds'),
                                  ('SEAM_DEGREES', '--seam-degrees')]:

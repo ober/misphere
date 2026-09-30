@@ -156,15 +156,20 @@ class VideoTests(unittest.TestCase):
         output_dir = self.root / 'batch'
         bad = self.input_dir / 'broken.mp4'
         bad.write_bytes(b'not an MP4 recording')
+        second = self.input_dir / 'VID_002.mp4'
+        shutil.copyfile(self.source, second)
         try:
             result = self.run_cli('batch', self.input_dir, output_dir, '--width', 320)
             self.assertEqual(result.returncode, 1, result.stderr)
-            self.assertTrue((output_dir / 'synthetic.mp4').exists())
+            self.assertTrue((output_dir / 'synthetic_s.mp4').exists())
+            self.assertTrue((output_dir / 'VID_002_s.mp4').exists())
+            self.assertFalse((output_dir / 'synthetic.mp4').exists())
             failures = json.loads((output_dir / 'failures.json').read_text())
             self.assertEqual(len(failures), 1)
             self.assertEqual(Path(failures[0]['input']).name, 'broken.mp4')
         finally:
             bad.unlink()
+            second.unlink()
         result = self.run_cli('batch', self.input_dir, output_dir, '--width', 320)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Skip existing', result.stdout)

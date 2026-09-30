@@ -251,7 +251,8 @@ def main():
     inspect.add_argument('input', type=Path)
     single = subs.add_parser('convert')
     single.add_argument('input', type=Path)
-    single.add_argument('output', type=Path)
+    single.add_argument('output', type=Path, nargs='?',
+                        help='Defaults to the original filename with _s.mp4 appended to its stem')
     batch = subs.add_parser('batch')
     batch.add_argument('input_dir', type=Path)
     batch.add_argument('output_dir', type=Path)
@@ -286,7 +287,8 @@ def main():
         if args.width < 4 or args.width % 4:
             parser.error('--width must be positive and divisible by four')
         if args.command == 'convert':
-            convert(args.input.resolve(), args.output.resolve(), args.width, args.seam_degrees, args.seconds)
+            output = args.output or args.input.with_name(args.input.stem + '_s.mp4')
+            convert(args.input.resolve(), output.resolve(), args.width, args.seam_degrees, args.seconds)
         else:
             input_root = args.input_dir.resolve()
             output_root = args.output_dir.resolve()
@@ -297,7 +299,8 @@ def main():
             if not inputs:
                 parser.error('No MP4 inputs found')
             for source in inputs:
-                output = args.output_dir / source.relative_to(args.input_dir)
+                relative = source.relative_to(args.input_dir)
+                output = args.output_dir / relative.with_name(relative.stem + '_s.mp4')
                 if output.exists():
                     print(f'Skip existing: {output}')
                     continue

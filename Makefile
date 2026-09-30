@@ -21,9 +21,9 @@ test: setup
 help:
 	@printf '%s\n' \
 	  'make                         Install/check dependencies (same as make setup)' \
-	  'make convert INPUT=clip.mp4   Convert to clip-stitched.mp4' \
+	  'make convert INPUT=clip.mp4   Convert to clip_s.mp4' \
 	  'make convert INPUT=clip.mp4 OUTPUT=panorama.mp4 WIDTH=1440 SECONDS=3' \
-	  'make batch INPUT=/videos     Convert to /videos-stitched' \
+	  'make batch INPUT=/videos     Convert to /videos_s/name_s.mp4' \
 	  'make inspect INPUT=clip.mp4   Inspect camera metadata' \
 	  'make test                    Run synthetic tests' \
 	  'Optional settings: PYTHON=python3.12 WIDTH=3456 SECONDS=3 SEAM_DEGREES=1'

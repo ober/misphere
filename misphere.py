@@ -114,10 +114,9 @@ class VideoFrames:
 
 
 def mapping(cal, src_width, src_height, width, height, seam_degrees):
-    # Stored coordinates are local to each 1728-square lens in 3.5K video.
-    # Other recording modes need separate validation before using this scale.
-    if (src_width, src_height) != (3456, 1728):
-        raise ValueError('Currently validated only for 3456x1728 Mi Sphere recordings')
+    # Both 3.5K and 4K recordings store LUT coordinates in a 1728-square lens.
+    if (src_width, src_height) not in ((3456, 1728), (3840, 1920)):
+        raise ValueError(f'Unsupported recording dimensions: {src_width}x{src_height}')
     maps = {}
     # LUT grid includes both endpoints. Match the shader's endpoint interpolation.
     lut_h, lut_w = next(iter(cal.values())).shape
@@ -129,6 +128,7 @@ def mapping(cal, src_width, src_height, width, height, seam_degrees):
             a = cal[f'{side}_{axis}_int'].astype(np.float32)
             a += cal[f'{side}_{axis}_min'].astype(np.float32) / 1000.0
             a = cv2.remap(a, xx, yy, cv2.INTER_LINEAR)
+            a *= src_height / 1728.0
             if side == 'r' and axis == 'x':
                 a += src_width / 2
             coords.append(a)

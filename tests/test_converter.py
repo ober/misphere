@@ -39,6 +39,14 @@ def synthetic_lut():
 
 
 class FormatTests(unittest.TestCase):
+    def test_4k_scales_calibration_and_offsets_right_lens(self):
+        cal = misphere.calibration({'lutz': synthetic_lut()})
+        maps, _ = misphere.mapping(cal, 3840, 1920, 32, 16, 1)
+        np.testing.assert_allclose(maps['l'][0], 960)
+        np.testing.assert_allclose(maps['l'][1], 960)
+        np.testing.assert_allclose(maps['r'][0], 2880)
+        np.testing.assert_allclose(maps['r'][1], 960)
+
     def test_box_bounds_and_extended_size(self):
         extended = struct.pack('>I4sQ', 1, b'free', 19) + b'abc'
         self.assertEqual(list(misphere.boxes(io.BytesIO(extended), 0, len(extended))),
@@ -73,7 +81,7 @@ class FormatTests(unittest.TestCase):
         panorama = misphere.stitch(source, maps, weights)
         np.testing.assert_array_equal(panorama[80, 0], (0, 0, 255))
         np.testing.assert_array_equal(panorama[80, 160], (255, 0, 0))
-        with self.assertRaisesRegex(ValueError, '3456x1728'):
+        with self.assertRaisesRegex(ValueError, 'Unsupported recording dimensions'):
             misphere.mapping(cal, 2304, 1152, 320, 160, 1)
 
 

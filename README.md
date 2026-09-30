@@ -177,7 +177,7 @@ For the file layout, equations, provenance, and unresolved questions, read
 
 ## Current limitations
 
-- Input support is currently restricted to **original 3456×1728 camera MP4s
+- Input support is currently restricted to **original 3456×1728 and 3840×1920 camera MP4s
   with embedded calibration**. Other recording modes are rejected pending
   validation. Video timing assumes constant frame rate and a zero start time.
 - A Mi Sphere recording has been tested. Madventure-compatible support follows

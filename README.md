@@ -53,7 +53,8 @@ systems, install Python and FFmpeg with your package manager first.
 **FreeBSD:** use the built-in `make`; GNU make is not required. Setup installs
 native `pyXY-numpy` and `pyXY-opencv-python-headless` packages matching your
 Python version, then makes them available in the virtual environment. It avoids
-building OpenCV from PyPI. The tested FreeBSD packages use Python 3.12; select
+building OpenCV from PyPI. Video decoding uses the FFmpeg executable, so OpenCV
+does not need its own video decoder. The tested FreeBSD packages use Python 3.12; select
 a different installed version with `make PYTHON=python3.12` if needed.
 
 Run `make help` for all targets. The underlying Python CLI remains available

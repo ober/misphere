@@ -101,8 +101,6 @@ for name in ('ffmpeg', 'ffprobe'):
 encoders = subprocess.check_output(['ffmpeg', '-hide_banner', '-encoders'], stderr=subprocess.STDOUT, text=True)
 if not any(len(line.split()) > 1 and line.split()[1] == 'libx264' for line in encoders.splitlines()):
     sys.exit('FFmpeg must include the libx264 encoder')
-if 'FFMPEG:                      YES' not in cv2.getBuildInformation():
-    sys.exit('OpenCV must have FFmpeg video decoding support')
 print(f'Ready: Python {sys.version.split()[0]}, NumPy {np.__version__}, OpenCV {cv2.__version__}, FFmpeg.')
 print('Run: make convert INPUT=original.mp4 (or make help).')
 PY

@@ -84,6 +84,35 @@ def probe(path):
         'ffprobe', '-v', 'error', '-show_streams', '-show_format', '-of', 'json', str(path)]))
 
 
+class VideoFrames:
+    """Decode with the FFmpeg executable, including on OpenCV builds without video I/O."""
+    def __init__(self, path, width, height):
+        self.width, self.height = width, height
+        self.process = subprocess.Popen([
+            'ffmpeg', '-v', 'error', '-nostdin', '-i', str(path), '-map', '0:v:0',
+            '-fps_mode', 'passthrough', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-'
+        ], stdout=subprocess.PIPE)
+
+    def read(self):
+        size = self.width * self.height * 3
+        data = self.process.stdout.read(size)
+        if not data:
+            if self.process.wait() != 0:
+                raise RuntimeError('FFmpeg decoding failed')
+            return False, None
+        if len(data) != size:
+            raise RuntimeError('FFmpeg returned an incomplete frame')
+        return True, np.frombuffer(data, np.uint8).reshape(self.height, self.width, 3)
+
+    def release(self):
+        if self.process.poll() is None:
+            # Rawvideo has no trailer to flush. Stop before closing the pipe so
+            # intentional short previews do not print misleading broken-pipe errors.
+            self.process.kill()
+        self.process.wait()
+        self.process.stdout.close()
+
+
 def mapping(cal, src_width, src_height, width, height, seam_degrees):
     # Stored coordinates are local to each 1728-square lens in 3.5K video.
     # Other recording modes need separate validation before using this scale.
@@ -177,9 +206,7 @@ def convert(source, output, width, seam_degrees, seconds=None):
         raise ValueError('Currently supported only for constant-frame-rate video starting at zero')
     maps, weight = mapping(calibration(meta), sw, sh, width, width//2, seam_degrees)
     output.parent.mkdir(parents=True, exist_ok=True)
-    cap = cv2.VideoCapture(str(source))
-    if not cap.isOpened():
-        raise ValueError(f'Cannot decode {source}')
+    cap = VideoFrames(source, sw, sh)
     with tempfile.TemporaryDirectory(prefix='.misphere-', dir=output.parent) as temp:
         temp_output = Path(temp) / 'stitched.mp4'
         cmd = ['ffmpeg', '-v', 'error', '-nostdin', '-f', 'rawvideo', '-pixel_format', 'bgr24',

@@ -138,7 +138,7 @@ class VideoTests(unittest.TestCase):
         self.assertEqual(self.audio_hash(self.source), self.audio_hash(output))
         self.assertEqual(hashlib.sha256(self.source.read_bytes()).hexdigest(), source_hash)
         subprocess.run(['ffmpeg', '-v', 'error', '-i', str(output), '-f', 'null', '-'], check=True)
-        cap = cv2.VideoCapture(str(output))
+        cap = misphere.VideoFrames(output, 320, 160)
         try:
             ok, frame = cap.read()
         finally:

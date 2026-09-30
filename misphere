@@ -4,6 +4,24 @@ if [ "$#" -eq 0 ]; then
     printf '%s\n' 'Usage: ./misphere video.mp4 | ./misphere /path/to/videos | ./misphere --check video.mp4' >&2
     exit 2
 fi
-project_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-make -s -C "$project_dir" setup
+launcher=$0
+case "$launcher" in
+    */*) ;;
+    *) launcher=$(command -v "$launcher") ;;
+esac
+while [ -L "$launcher" ]; do
+    launcher_dir=$(CDPATH= cd -- "$(dirname -- "$launcher")" && pwd -P)
+    target=$(readlink "$launcher")
+    case "$target" in
+        /*) launcher=$target ;;
+        *) launcher=$launcher_dir/$target ;;
+    esac
+done
+project_dir=$(CDPATH= cd -- "$(dirname -- "$launcher")" && pwd -P)
+ready="$project_dir/.venv/.misphere-ready"
+if [ ! -x "$project_dir/.venv/bin/python" ] || [ ! -f "$ready" ] ||
+   [ "$project_dir/scripts/setup.sh" -nt "$ready" ] ||
+   [ "$project_dir/requirements.txt" -nt "$ready" ]; then
+    sh "$project_dir/scripts/setup.sh"
+fi
 exec "$project_dir/.venv/bin/python" "$project_dir/misphere.py" auto "$@"
